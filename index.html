@@ -5,93 +5,19 @@
     <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎮</text></svg>'>
     <title>ブラウザ版テトリス</title>
     <style>
-        body {
-            background-color: #f0f0f0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        #gameContainer {
-            display: flex;
-            position: relative;
-            align-items: flex-start;
-            justify-content: center;
-        }
-        #leftInfo, #rightInfo {
-            width: 220px;
-            min-width: 220px;
-            max-width: 220px;
-            box-sizing: border-box;
-        }
-        #leftInfo {
-            display: flex;
-            justify-content: flex-end;
-        }
-        #gameArea {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            margin: 0 32px;
-            width: auto;
-            min-width: 200px;
-        }
-        #gameCanvas {
-            border: 2px solid #333;
-        }
-        #nextPieceCanvas {
-            position: absolute;
-            top: -180px;
-            left: 0;
-        }
-        #bottomControls {
-            margin-top: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #pauseOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 24px;
-        }
-        #gameOverOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 24px;
-            z-index: 10;
-            flex-direction: column;
-            text-align: center;
-        }
-        #gameOverOverlay h2 {
-            margin: 10px 0;
-        }
-        .leftInfoInner {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
+        body { background-color: #f0f0f0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
+        #gameContainer { display: flex; position: relative; align-items: flex-start; justify-content: center; }
+        #leftInfo, #rightInfo { width: 220px; min-width: 220px; max-width: 220px; box-sizing: border-box; }
+        #leftInfo { display: flex; justify-content: flex-end; }
+        #gameArea { display: flex; flex-direction: column; align-items: center; position: relative; margin: 0 32px; width: auto; min-width: 200px; }
+        #gameCanvas { border: 2px solid #333; }
+        #nextPieceCanvas { position: absolute; top: -180px; left: 0; }
+        #bottomControls { margin-top: 20px; width: 100%; display: flex; justify-content: center; align-items: center; }
+        #pauseOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; color: white; font-size: 24px; }
+        #gameOverOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; color: white; font-size: 24px; z-index: 10; flex-direction: column; text-align: center; }
+        #gameOverOverlay h2 { margin: 10px 0; }
+        #controlsList p { margin: 0 0 8px; }
+        .leftInfoInner { display: flex; flex-direction: column; align-items: flex-start; }
     </style>
 </head>
 <body>
@@ -113,12 +39,7 @@
         </div>
         <div id="rightInfo">
             <h3>操作方法</h3>
-            <p><strong>Enter</strong> : ゲーム開始</p>
-            <p><strong>← →</strong> : 左右移動</p>
-            <p><strong>↑ または スペース</strong> : 回転</p>
-            <p><strong>↓</strong> : 落下加速</p>
-            <p><strong>S</strong> : 一時停止</p>
-            <p><strong>F3</strong> : 画面サイズ変更</p>
+            <div id="controlsList"></div>
         </div>
     </div>
     <div id="bottomControls">
@@ -132,12 +53,42 @@
             return params.get(name);
         }
 
+        // キー割り当て設定です。
+        // `key` は KeyboardEvent.key の値、`label` は画面表示用の文字列です。
+        // 好きなキーに変えたい場合は、下の `key` と `label` をセットで書き換えてください。
+        // 例:
+        // { key: 'a', label: 'A' }
+        // { key: ' ', label: 'Space' }
+        // { key: 'Shift', label: 'Shift' }
+        const KEY_BINDINGS = {
+            start: [{ key: 'Enter', label: 'Enter' }],
+            moveLeft: [{ key: 'ArrowLeft', label: '←' }],
+            moveRight: [{ key: 'ArrowRight', label: '→' }],
+            rotateRight: [{ key: 'ArrowUp', label: '↑' }, { key: ' ', label: 'Space' }],
+            rotateLeft: [{ key: 'z', label: 'Z' }],
+            softDrop: [{ key: 'ArrowDown', label: '↓' }],
+            pause: [{ key: 's', label: 'S' }],
+            changeSize: [{ key: 'F3', label: 'F3' }]
+        };
+
+        const CONTROL_ITEMS = [
+            { action: 'start', description: 'ゲーム開始' },
+            { action: 'moveLeft', description: '左移動' },
+            { action: 'moveRight', description: '右移動' },
+            { action: 'rotateRight', description: '右回転' },
+            { action: 'rotateLeft', description: '左回転' },
+            { action: 'softDrop', description: '落下加速' },
+            { action: 'pause', description: '一時停止' },
+            { action: 'changeSize', description: '画面サイズ変更' }
+        ];
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const linesElement = document.getElementById('lines');
         const levelElement = document.getElementById('level');
         const startButton = document.getElementById('startButton');
+        const controlsListElement = document.getElementById('controlsList');
         const nextPieceCanvas = document.getElementById('nextPieceCanvas');
         const nextPieceCtx = nextPieceCanvas.getContext('2d');
         const pauseOverlay = document.getElementById('pauseOverlay');
@@ -186,6 +137,7 @@
         const LOCK_DELAY_INITIAL = 500; // ピース設置後の基本ディレイ(ms)
         const LOCK_DELAY_EXTENSION = 200; // 操作があった場合の追加ディレイ(ms)
         const LOCK_DELAY_UNMOVABLE = 300; // 操作不可時間(ms)
+        const MAX_LOCKED_FLOOR_KICKS = 8; // 接地後に使える上方向キックの上限
         const LINE_CLEAR_DELAY = 500; // ライン消去時のディレイ(ms)
         const LINE_CLEAR_BONUS = 5000; // オールクリア時のボーナス点
 
@@ -395,36 +347,30 @@
         let score = INITIAL_SCORE;
         let lines = INITIAL_LINES;
         let level = startLevel;
+        let gameStartTimeoutId = null;
         let gameLoop = null;
         let gameSpeed = 1000;
-        let fastDrop = false;
         let isPaused = false;
         let isGameRunning = false;
-        let lockDelay = 0;
-        let maxLockDelay = 500; // 0.5秒（ミリ秒）
         let isLocked = false; // 床に付いているかどうか
-        let softDropLines = 0; // ソフトドロップで移動したライン数
         let lockStartTime = 0; // ロック開始時刻
-        let lockStartX = 0; // ロック開始時のX位置
         let leftKeyPressed = false;
         let rightKeyPressed = false;
         let currentRotation = 0; // 現在の回転状態（0-3）
         let currentPieceIndex = 0; // 現在のピースの種類インデックス
         let isClearingLines = false; // ライン消去中フラグ
-        let linesToClear = [];
         let lockPhase = null; // '操作可1', '操作可2', '操作不可'
         let hasLockAction = false; // 設置後に操作があったか
         let lockTimeoutId = null; // 操作不可時のsetTimeout管理用
         let softDropKeyPressed = false; // ↓キー押下状態
         let rotatedUpwards = false; // 回転で上に移動したかのフラグ
+        let floorKickCount = 0; // 同一ピースで使った接地後の上方向キック回数
 
         resizeCanvas();
 
         function resizeCanvas() {
             const multiplier = SIZE_MULTIPLIERS[currentSizeIndex];
             const newBlockSize = Math.floor(20 * multiplier);
-
-console.log(`ビューポート高さ:${viewportHeight} インデックス：${currentSizeIndex} サイズ：${multiplier}`);
 
             BLOCK_SIZE = newBlockSize;
             
@@ -485,23 +431,90 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             drawPiece(nextPiece, offsetX, offsetY, nextColor, nextPieceCtx);
         }
 
+        function normalizeBindingKey(key) {
+            if (key === 'Space' || key === 'Spacebar') return ' ';
+            if (key === null || key === undefined) return '';
+            return key.length === 1 && key !== ' ' ? key.toLowerCase() : key;
+        }
+
+        function isBoundAction(action, key) {
+            const normalizedKey = normalizeBindingKey(key);
+            return KEY_BINDINGS[action].some(binding => normalizeBindingKey(binding.key) === normalizedKey);
+        }
+
+        function getBindingLabel(action) {
+            return KEY_BINDINGS[action].map(binding => binding.label).join(' / ');
+        }
+
+        function renderControls() {
+            controlsListElement.innerHTML = '';
+            for (const item of CONTROL_ITEMS) {
+                const row = document.createElement('p');
+                const keyLabel = document.createElement('strong');
+                keyLabel.textContent = getBindingLabel(item.action);
+                row.appendChild(keyLabel);
+                row.append(` : ${item.description}`);
+                controlsListElement.appendChild(row);
+            }
+        }
+
+        function getPieceIndex(piece) {
+            return ROTATION_PATTERNS.findIndex(pattern => pattern[0] === piece);
+        }
+
+        function clearLockTimeout() {
+            if (lockTimeoutId) {
+                clearTimeout(lockTimeoutId);
+                lockTimeoutId = null;
+            }
+        }
+
+        function clearGameStartTimeout() {
+            if (gameStartTimeoutId) {
+                clearTimeout(gameStartTimeoutId);
+                gameStartTimeoutId = null;
+            }
+        }
+
+        function resetLockState() {
+            isLocked = false;
+            lockStartTime = 0;
+            lockPhase = null;
+            hasLockAction = false;
+            rotatedUpwards = false;
+            clearLockTimeout();
+        }
+
+        function resetPieceState() {
+            currentRotation = 0;
+            floorKickCount = 0;
+            resetLockState();
+        }
+
+        function playLandingSound() {
+            landingSound.currentTime = 0;
+            landingSound.play().catch(e => console.log('音声再生エラー:', e));
+        }
+
+        function startLockPhase(phase) {
+            if (!isLocked) {
+                playLandingSound();
+            }
+            isLocked = true;
+            lockStartTime = Date.now();
+            lockPhase = phase;
+            hasLockAction = false;
+            rotatedUpwards = false;
+        }
+
         function newPiece() {
             // currentPiece ← nextPiece
             currentPiece = nextPiece;
             currentColor = nextColor;
             currentX = Math.floor(COLS / 2) - Math.floor(currentPiece[0].length / 2);
             currentY = -1; // 1ライン上に修正
-            lockDelay = 0;
-            isLocked = false;
-            lockStartTime = 0;
-            lockStartX = 0;
-            currentRotation = 0;
-            for (let i = 0; i < ROTATION_PATTERNS.length; i++) {
-                if (ROTATION_PATTERNS[i][0] === currentPiece) {
-                    currentPieceIndex = i;
-                    break;
-                }
-            }
+            resetPieceState();
+            currentPieceIndex = getPieceIndex(currentPiece);
             
             // ゲームオーバー判定：新しいピースが既に衝突している場合
             if (collision()) {
@@ -532,13 +545,6 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             nextPiece = ROTATION_PATTERNS[randomIndex][0];
             nextColor = COLORS[randomIndex];
             drawNextPiece();
-            lockPhase = null;
-            hasLockAction = false;
-            rotatedUpwards = false;
-            if (lockTimeoutId) {
-                clearTimeout(lockTimeoutId);
-                lockTimeoutId = null;
-            }
             return true;
         }
 
@@ -563,16 +569,6 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             return false;
         }
 
-//        function merge() {
-//            for (let y = 0; y < currentPiece.length; y++) {
-//                for (let x = 0; x < currentPiece[y].length; x++) {
-//                    if (currentPiece[y][x]) {
-//                        board[currentY + y][currentX + x] = currentColor;
-//                    }
-//                }
-//            }
-//        }
-
         function merge() {
             for (let y = 0; y < currentPiece.length; y++) {
                 for (let x = 0; x < currentPiece[y].length; x++) {
@@ -587,22 +583,16 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
 
         // 操作不可フェーズ突入処理
         function enterUnmovablePhase() {
+            if (lockPhase === '操作不可') return;
             lockPhase = '操作不可';
             lockStartTime = Date.now();
-            if (!lockTimeoutId) {
-                lockTimeoutId = setTimeout(() => {
-                    merge();
-                    clearLines();
-                    isLocked = false;
-                    lockDelay = 0;
-                    lockStartTime = 0;
-                    lockStartX = 0;
-                    lockPhase = null;
-                    hasLockAction = false;
-                    lockTimeoutId = null;
-                    draw();
-                }, LOCK_DELAY_UNMOVABLE);
-            }
+            clearLockTimeout();
+            lockTimeoutId = setTimeout(() => {
+                merge();
+                clearLines();
+                resetLockState();
+                draw();
+            }, LOCK_DELAY_UNMOVABLE);
         }
 
         function moveDown() {
@@ -613,46 +603,19 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
                 if (softDropKeyPressed) {
                     // ↓キー押下中は即ロックディレイをスキップし、操作不可フェーズへ
                     if (!isLocked) {
-                        landingSound.currentTime = 0;
-                        landingSound.play().catch(e => console.log('音声再生エラー:', e));
-                        isLocked = true;
-                        lockDelay = 0;
-                        lockStartTime = Date.now();
-                        lockStartX = currentX;
-                        hasLockAction = false;
+                        startLockPhase(null);
                     }
-                    if (lockPhase !== '操作不可') {
-                        enterUnmovablePhase();
-                    }
+                    enterUnmovablePhase();
                     return false;
                 }
                 if (!isLocked) {
                     // ソフトドロップ以外の着地時も必ず着地音を再生
-                    landingSound.currentTime = 0;
-                    landingSound.play().catch(e => console.log('音声再生エラー:', e));
-                    isLocked = true;
-                    lockDelay = 0;
-                    lockStartTime = Date.now();
-                    lockStartX = currentX;
-                    lockPhase = '操作可1';
-                    hasLockAction = false;
+                    startLockPhase('操作可1');
                 }
             } else {
                 // 1段でも下に移動できた場合はロック状態をリセット
-                if (isLocked) {
-                    // ただし、回転で上に上がった直後でない場合に限る
-                    if (!rotatedUpwards) {
-                        isLocked = false;
-                        lockDelay = 0;
-                        lockStartTime = 0;
-                        lockStartX = 0;
-                        lockPhase = null;
-                        hasLockAction = false;
-                        if (lockTimeoutId) {
-                            clearTimeout(lockTimeoutId);
-                            lockTimeoutId = null;
-                        }
-                    }
+                if (isLocked && !rotatedUpwards) {
+                    resetLockState();
                 }
                 // 1段でも自然落下すれば、上方回転フラグはリセット
                 rotatedUpwards = false;
@@ -682,12 +645,12 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             }
         }
 
-        function rotate() {
+        function rotate(direction = 1) {
             if (!isGameRunning || isPaused || isClearingLines) return;
             if (isLocked && (lockPhase === '操作不可')) return;
             
             // 次の回転状態を取得
-            const nextRotation = (currentRotation + 1) % 4;
+            const nextRotation = (currentRotation + direction + 4) % 4;
             const nextPiece = ROTATION_PATTERNS[currentPieceIndex][nextRotation];
             
             const prevPiece = currentPiece;
@@ -711,12 +674,18 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
                 
                 let kicked = false;
                 for (let [dx, dy] of kicks) {
+                    if (isLocked && dy < 0 && floorKickCount >= MAX_LOCKED_FLOOR_KICKS) {
+                        continue;
+                    }
                     currentX += dx;
                     currentY += dy;
                     if (!collision()) {
                         kicked = true;
                         if (dy < 0) { // 上に移動した場合
                             rotatedUpwards = true;
+                            if (isLocked) {
+                                floorKickCount++;
+                            }
                         }
                         break;
                     }
@@ -892,10 +861,12 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
         function gameOver() {
             isGameRunning = false;
             isPaused = false;
+            clearGameStartTimeout();
             if (gameLoop) {
                 clearTimeout(gameLoop);
                 gameLoop = null;
             }
+            clearLockTimeout();
             gameOverOverlay.style.display = 'flex';
             startButton.disabled = false;
             pauseOverlay.style.display = 'none';
@@ -918,15 +889,15 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             linesElement.textContent = lines;
             levelElement.textContent = level;
             gameSpeed = getGameSpeed(level);
-            fastDrop = false;
             isPaused = false;
             isGameRunning = false;
             isClearingLines = false;
-            rotatedUpwards = false;
+            resetPieceState();
             pauseOverlay.style.display = 'none';
             gameOverOverlay.style.display = 'none';
             nextPiece = null;
-            softDropLines = 0;
+            softDropKeyPressed = false;
+            clearGameStartTimeout();
             if (gameLoop) {
                 clearTimeout(gameLoop);
                 gameLoop = null;
@@ -939,17 +910,7 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             currentColor = COLORS[firstIndex];
             currentX = Math.floor(COLS / 2) - Math.floor(currentPiece[0].length / 2);
             currentY = -1; // 1ライン上に修正
-            lockDelay = 0;
-            isLocked = false;
-            lockStartTime = 0;
-            lockStartX = 0;
-            currentRotation = 0;
-            for (let i = 0; i < ROTATION_PATTERNS.length; i++) {
-                if (ROTATION_PATTERNS[i][0] === currentPiece) {
-                    currentPieceIndex = i;
-                    break;
-                }
-            }
+            currentPieceIndex = firstIndex;
             nextPiece = ROTATION_PATTERNS[secondIndex][0];
             nextColor = COLORS[secondIndex];
 
@@ -958,35 +919,19 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             // nextPieceCanvasに2つ目のピースを表示
             drawNextPiece();
 
-//            // 即座にゲーム進行開始
-//            isGameRunning = true;
-//            updateGameLoop();
-//            startButton.disabled = true;
-//            lockPhase = null;
-//            hasLockAction = false;
-//            if (lockTimeoutId) {
-//                clearTimeout(lockTimeoutId);
-//                lockTimeoutId = null;
-//            }
             // 即座にゲーム進行開始
             isGameRunning = true;
             startButton.disabled = true;
-            lockPhase = null;
-            hasLockAction = false;
-            if (lockTimeoutId) {
-                clearTimeout(lockTimeoutId);
-                lockTimeoutId = null;
-            }
+            resetLockState();
 
             // 1秒待ってからゲームループ開始
-            setTimeout(() => {
+            gameStartTimeoutId = setTimeout(() => {
+                gameStartTimeoutId = null;
                 updateGameLoop();
             }, 1000);
         }
         
         function getGameSpeed(level) {
-//            let speed = (Math.max(100, Math.floor(1000 / (1 + Math.log(level)))) + (700 - (level * 10))) / 2 + 57;
-//console.log(`level=${level}:${speed}\n`);
             return Math.max(1, Math.floor(1002 / (1 + Math.log(level)) - (level * 1.79)));
         }
 
@@ -1025,18 +970,27 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
         }
 
         document.addEventListener('keydown', (e) => {
+            const isStartKey = isBoundAction('start', e.key);
+            const isChangeSizeKey = isBoundAction('changeSize', e.key);
+            const isPauseKey = isBoundAction('pause', e.key);
+            const isMoveLeftKey = isBoundAction('moveLeft', e.key);
+            const isMoveRightKey = isBoundAction('moveRight', e.key);
+            const isSoftDropKey = isBoundAction('softDrop', e.key);
+            const isRotateRightKey = isBoundAction('rotateRight', e.key);
+            const isRotateLeftKey = isBoundAction('rotateLeft', e.key);
+
             // ゲームの状態を変更するキーは常に受け付ける
-            if (e.key === 'Enter') {
+            if (isStartKey) {
                 e.preventDefault();
                 startGame();
                 return;
             }
-            if (e.key === 'F3') {
+            if (isChangeSizeKey) {
                 e.preventDefault();
                 changeSize();
                 return;
             }
-            if (e.key === 's' || e.key === 'S') {
+            if (isPauseKey) {
                 e.preventDefault();
                 togglePause();
                 return;
@@ -1044,19 +998,19 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
 
             // キー押下状態の更新（ライン消去中も記録）
             let isActionKey = false;
-            if (e.key === 'ArrowLeft') {
+            if (isMoveLeftKey) {
                 leftKeyPressed = true;
                 isActionKey = true;
             }
-            if (e.key === 'ArrowRight') {
+            if (isMoveRightKey) {
                 rightKeyPressed = true;
                 isActionKey = true;
             }
-            if (e.key === 'ArrowDown') {
+            if (isSoftDropKey) {
                 softDropKeyPressed = true;
                 isActionKey = true;
             }
-            if (e.key === 'ArrowUp' || e.key === ' ') {
+            if (isRotateRightKey || isRotateLeftKey) {
                 isActionKey = true;
             }
 
@@ -1068,36 +1022,35 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
             // ピース操作（移動、回転）は、ゲームが操作可能な状態のときのみ実行
             if (!isGameRunning || isPaused || isClearingLines) return;
 
-            if (e.key === 'ArrowLeft') {
+            if (isMoveLeftKey) {
                 moveLeft();
                 draw();
-            }
-            if (e.key === 'ArrowRight') {
+            } else if (isMoveRightKey) {
                 moveRight();
                 draw();
-            }
-            if (e.key === 'ArrowDown') {
+            } else if (isSoftDropKey) {
                 if (moveDown()) {
-                    softDropLines++;
                     score += 1; // ソフトドロップで1点追加
                     scoreElement.textContent = score;
                 }
                 draw();
-            }
-            if (e.key === 'ArrowUp' || e.key === ' ') {
-                rotate();
+            } else if (isRotateRightKey) {
+                rotate(1);
+                draw();
+            } else if (isRotateLeftKey) {
+                rotate(-1);
                 draw();
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft') {
+            if (isBoundAction('moveLeft', e.key)) {
                 leftKeyPressed = false;
             }
-            if (e.key === 'ArrowRight') {
+            if (isBoundAction('moveRight', e.key)) {
                 rightKeyPressed = false;
             }
-            if (e.key === 'ArrowDown') {
+            if (isBoundAction('softDrop', e.key)) {
                 softDropKeyPressed = false;
             }
         });
@@ -1106,6 +1059,7 @@ console.log(`ビューポート高さ:${viewportHeight} インデックス：${c
         
         // 初期化
         resizeCanvas();
+        renderControls();
 
         // ページロード時に正しいレベルを表示
         window.addEventListener('DOMContentLoaded', () => {

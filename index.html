@@ -64,8 +64,8 @@
             start: [{ key: 'Enter', label: 'Enter' }],
             moveLeft: [{ key: 'ArrowLeft', label: '←' }],
             moveRight: [{ key: 'ArrowRight', label: '→' }],
-            rotateRight: [{ key: 'ArrowUp', label: '↑' }, { key: ' ', label: 'Space' }],
-            rotateLeft: [{ key: 'z', label: 'Z' }],
+            rotateLeft: [{ key: 'ArrowUp', label: '↑' }, { key: ' ', label: 'Space' }],
+            rotateRight: [{ key: 'z', label: 'Z' }],
             softDrop: [{ key: 'ArrowDown', label: '↓' }],
             pause: [{ key: 's', label: 'S' }],
             changeSize: [{ key: 'F3', label: 'F3' }]
@@ -75,8 +75,8 @@
             { action: 'start', description: 'ゲーム開始' },
             { action: 'moveLeft', description: '左移動' },
             { action: 'moveRight', description: '右移動' },
-            { action: 'rotateRight', description: '右回転' },
             { action: 'rotateLeft', description: '左回転' },
+            { action: 'rotateRight', description: '右回転' },
             { action: 'softDrop', description: '落下加速' },
             { action: 'pause', description: '一時停止' },
             { action: 'changeSize', description: '画面サイズ変更' }
@@ -1034,10 +1034,10 @@
                     scoreElement.textContent = score;
                 }
                 draw();
-            } else if (isRotateRightKey) {
+            } else if (isRotateLeftKey) {
                 rotate(1);
                 draw();
-            } else if (isRotateLeftKey) {
+            } else if (isRotateRightKey) {
                 rotate(-1);
                 draw();
             }

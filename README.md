@@ -183,7 +183,7 @@ index.html?level=50
 tetris/
 ├── index.html
 ├── README.md
-├── tetris-screenshot.png
+├── tetris.jpg
 └── sound/
     ├── clearingLines.mp3
     ├── clearingLinesEnd.mp3

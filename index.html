@@ -5,45 +5,299 @@
     <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎮</text></svg>'>
     <title>ブラウザ版テトリス</title>
     <style>
-        body { background-color: #f0f0f0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #101214 radial-gradient(1200px 800px at 50% -15%, #23272c 0%, #101214 62%);
+            color: #eceae4;
+            font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
+        }
+        button { font-family: inherit; }
+
         #gameContainer { display: flex; position: relative; align-items: flex-start; justify-content: center; }
-        #leftInfo, #rightInfo { width: 220px; min-width: 220px; max-width: 220px; box-sizing: border-box; }
+        #leftInfo, #rightInfo { width: 230px; min-width: 230px; max-width: 230px; }
         #leftInfo { display: flex; justify-content: flex-end; }
-        #gameArea { display: flex; flex-direction: column; align-items: center; position: relative; margin: 0 32px; width: auto; min-width: 200px; }
-        #gameCanvas { border: 2px solid #333; }
+        .leftInfoInner { width: 200px; display: flex; flex-direction: column; }
+        #gameArea { display: flex; flex-direction: column; align-items: center; position: relative; margin: 0 36px; min-width: 200px; }
+
+        .panel {
+            background: linear-gradient(#1c2025, #171a1f);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            padding: 16px 18px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+        }
+
+        .brand { margin-bottom: 14px; }
+        .brandMain { display: block; font-size: 24px; font-weight: 800; letter-spacing: 0.30em; }
+        .brandSub { display: block; margin-top: 2px; font-size: 11px; letter-spacing: 0.14em; color: #9aa0a0; }
+
+        .stat + .stat { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+        .statLabel { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.24em; color: #9aa0a0; }
+        .statValue { display: inline-block; margin-top: 2px; font-size: 30px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+        .statValue.bump { animation: statBump 0.4s ease; }
+        @keyframes statBump { 30% { transform: scale(1.16); color: #ffcf6e; } }
+
+        #gameCanvas {
+            display: block;
+            background: #0a0c0f;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 4px;
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.35), 0 22px 50px rgba(0, 0, 0, 0.55);
+        }
         #nextPieceCanvas { position: absolute; top: -180px; left: 0; }
-        #bottomControls { margin-top: 20px; width: 100%; display: flex; justify-content: center; align-items: center; }
-        #pauseOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; color: white; font-size: 24px; }
-        #gameOverOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; color: white; font-size: 24px; z-index: 10; flex-direction: column; text-align: center; }
-        #gameOverOverlay h2 { margin: 10px 0; }
-        #controlsList p { margin: 0 0 8px; }
-        .leftInfoInner { display: flex; flex-direction: column; align-items: flex-start; }
+
+        #pauseOverlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(8, 10, 13, 0.82);
+            backdrop-filter: blur(2px);
+            display: none; justify-content: center; align-items: center;
+            color: #eceae4; z-index: 10; border-radius: 4px;
+            font-size: 26px; font-weight: 700; letter-spacing: 0.4em; text-indent: 0.4em;
+        }
+
+        #gameOverOverlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: none; justify-content: center; align-items: center;
+            background: rgba(4, 5, 7, 0.7);
+            backdrop-filter: blur(2px);
+        }
+        #gameOverOverlay .gameOverPanel {
+            width: 340px; max-width: calc(100vw - 32px); max-height: 86vh; overflow-y: auto;
+            background: linear-gradient(#1d2126, #171a1f);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 14px;
+            padding: 22px 22px 18px;
+            box-shadow: 0 34px 80px rgba(0, 0, 0, 0.65);
+            color: #eceae4;
+            text-align: center;
+        }
+        #gameOverOverlay h2 { margin: 0 0 12px; font-size: 26px; font-weight: 700; letter-spacing: 0.3em; text-indent: 0.3em; }
+        .finalScore { margin: 0; font-size: 12px; letter-spacing: 0.18em; color: #9aa0a0; }
+        .finalScore span { margin-left: 8px; font-size: 22px; font-weight: 700; color: #ffcf6e; font-variant-numeric: tabular-nums; }
+        .restartHint { margin: 16px 0 0; font-size: 11px; letter-spacing: 0.08em; color: #9aa0a0; }
+
+        .scoreEntry { display: flex; gap: 8px; margin-top: 16px; }
+        #playerNameInput {
+            flex: 1; min-width: 0;
+            padding: 8px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 7px;
+            background: #22262c;
+            color: #eceae4;
+            font-size: 13px;
+        }
+        #playerNameInput:focus { outline: none; border-color: rgba(255, 207, 110, 0.6); }
+        #playerNameInput:disabled { opacity: 0.55; }
+        #saveScoreButton:disabled { opacity: 0.5; cursor: default; }
+        .scoreEntryMessage { min-height: 16px; margin: 6px 0 0; font-size: 11px; color: #ffcf6e; }
+
+        .highScorePanel { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); text-align: left; }
+        .highScorePanel h3 { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; color: #9aa0a0; text-align: center; }
+        .highScoreEmpty { margin: 0; padding: 10px 0; font-size: 12px; color: #9aa0a0; text-align: center; }
+        .highScoreRow {
+            display: grid;
+            grid-template-columns: 22px 1fr auto;
+            align-items: baseline;
+            column-gap: 8px;
+            padding: 6px 4px;
+            font-size: 13px;
+            border-radius: 6px;
+        }
+        .highScoreRow + .highScoreRow { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+        .highScoreRow.highlight { background: rgba(255, 207, 110, 0.10); border-top-color: transparent; }
+        .hsRank { color: #9aa0a0; font-variant-numeric: tabular-nums; font-size: 12px; }
+        .hsName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hsScore { font-weight: 700; color: #ffcf6e; font-variant-numeric: tabular-nums; }
+        .hsMeta { grid-column: 2 / 4; margin-top: -2px; font-size: 10px; letter-spacing: 0.05em; color: #9aa0a0; }
+
+        #levelUpToast {
+            position: absolute; left: 50%; top: 34%;
+            transform: translate(-50%, -50%);
+            padding: 8px 18px;
+            border: 1px solid rgba(255, 207, 110, 0.55);
+            border-radius: 999px;
+            background: rgba(20, 16, 6, 0.75);
+            color: #ffcf6e;
+            font-size: 15px; font-weight: 700; letter-spacing: 0.28em; text-indent: 0.28em;
+            opacity: 0; pointer-events: none; z-index: 5; white-space: nowrap;
+        }
+        #levelUpToast.show { animation: toastPop 1.3s ease forwards; }
+        @keyframes toastPop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+            12% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+            22% { transform: translate(-50%, -50%) scale(1); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, calc(-50% - 14px)); }
+        }
+
+        .panelHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .panelHeader h3 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; color: #9aa0a0; }
+        .controlRow { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+        .controlRow + .controlRow { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+        .controlKeys { display: flex; flex-wrap: wrap; gap: 4px; min-width: 92px; }
+        .controlDesc { font-size: 13px; }
+        kbd {
+            display: inline-block;
+            min-width: 26px;
+            padding: 2px 7px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-bottom-width: 2px;
+            border-radius: 6px;
+            background: #22262c;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        #bottomControls { margin-top: 26px; width: 100%; display: flex; justify-content: center; align-items: center; }
+        .primaryButton {
+            padding: 10px 34px;
+            border: 0;
+            border-radius: 9px;
+            background: linear-gradient(#f7c05a, #e9a52f);
+            color: #2a1d04;
+            font-size: 15px; font-weight: 700; letter-spacing: 0.08em;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #9c6f1c, 0 10px 24px rgba(233, 165, 47, 0.22);
+        }
+        .primaryButton:hover:not(:disabled) { filter: brightness(1.06); }
+        .primaryButton:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 #9c6f1c, 0 8px 20px rgba(233, 165, 47, 0.2); }
+        .primaryButton:disabled { background: #2a2e34; color: #6d7278; box-shadow: none; cursor: default; }
+        .ghostButton {
+            padding: 5px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 7px;
+            background: transparent;
+            color: #b5bab6;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .ghostButton:hover { color: #eceae4; border-color: rgba(255, 255, 255, 0.3); }
+
+        #settingsOverlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(4, 5, 7, 0.7);
+            backdrop-filter: blur(2px);
+        }
+        #settingsOverlay[hidden] { display: none; }
+        #settingsPanel {
+            width: 430px; max-width: calc(100vw - 32px); max-height: 86vh; overflow-y: auto;
+            background: linear-gradient(#1d2126, #171a1f);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 14px;
+            padding: 20px 22px;
+            box-shadow: 0 34px 80px rgba(0, 0, 0, 0.65);
+        }
+        .settingsHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .settingsHeader h3 { margin: 0; font-size: 15px; letter-spacing: 0.12em; }
+        .settingsHint { margin: 0 0 6px; font-size: 12px; line-height: 1.7; color: #9aa0a0; }
+        #settingsMessage { min-height: 18px; margin-bottom: 4px; font-size: 12px; color: #ffcf6e; }
+        .settingsRow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; }
+        .settingsRow + .settingsRow { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+        .settingsDesc { font-size: 13px; }
+        .settingsChips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+        .chipGroup { display: inline-flex; align-items: center; gap: 2px; }
+        .keyChip {
+            min-width: 44px;
+            padding: 4px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-bottom-width: 2px;
+            border-radius: 7px;
+            background: #22262c;
+            color: #eceae4;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .keyChip:hover { border-color: rgba(255, 207, 110, 0.6); }
+        .keyChip.listening { border-color: #ffcf6e; color: #ffcf6e; animation: listeningBlink 1s ease-in-out infinite; }
+        @keyframes listeningBlink { 50% { opacity: 0.55; } }
+        .chipRemove { padding: 2px 4px; border: 0; background: transparent; color: #9aa0a0; font-size: 13px; cursor: pointer; }
+        .chipRemove:hover { color: #e8604c; }
+        .chipAdd { padding: 4px 9px; border: 1px dashed rgba(255, 255, 255, 0.25); border-radius: 7px; background: transparent; color: #9aa0a0; font-size: 12px; cursor: pointer; }
+        .chipAdd:hover { color: #eceae4; border-color: rgba(255, 255, 255, 0.4); }
+        .settingsFooter { margin-top: 14px; display: flex; justify-content: flex-end; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .statValue.bump, #levelUpToast.show, .keyChip.listening { animation: none; }
+        }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="leftInfo">
             <div class="leftInfoInner">
-                <h2>スコア: <span id="score">0</span></h2>
-                <h2>ライン: <span id="lines">0</span></h2>
-                <h2>レベル: <span id="level">1</span></h2>
+                <div class="brand">
+                    <span class="brandMain">TETRIS</span>
+                    <span class="brandSub">ブラウザ版テトリス</span>
+                </div>
+                <div class="panel">
+                    <div class="stat"><span class="statLabel">SCORE</span><span class="statValue" id="score">0</span></div>
+                    <div class="stat"><span class="statLabel">LINES</span><span class="statValue" id="lines">0</span></div>
+                    <div class="stat"><span class="statLabel">LEVEL</span><span class="statValue" id="level">1</span></div>
+                </div>
             </div>
         </div>
         <div id="gameArea">
             <canvas id="nextPieceCanvas" width="200" height="100"></canvas>
             <canvas id="gameCanvas" width="200" height="400"></canvas>
+            <div id="levelUpToast">LEVEL UP!</div>
             <div id="pauseOverlay">PAUSE</div>
             <div id="gameOverOverlay">
-                <h2>GAME OVER</h2>
+                <div class="gameOverPanel">
+                    <h2>GAME OVER</h2>
+                    <p class="finalScore">SCORE<span id="finalScore">0</span></p>
+
+                    <div class="scoreEntry">
+                        <input type="text" id="playerNameInput" maxlength="12" placeholder="なまえ" autocomplete="off">
+                        <button type="button" id="saveScoreButton" class="ghostButton">登録</button>
+                    </div>
+                    <p id="scoreEntryMessage" class="scoreEntryMessage"></p>
+
+                    <div class="highScorePanel">
+                        <h3>HIGH SCORES</h3>
+                        <div id="highScoreList"></div>
+                    </div>
+
+                    <p class="restartHint"><span id="restartKeyLabel">Enter</span> またはボタンで再スタート</p>
+                </div>
             </div>
         </div>
         <div id="rightInfo">
-            <h3>操作方法</h3>
-            <div id="controlsList"></div>
+            <div class="panel">
+                <div class="panelHeader">
+                    <h3>操作方法</h3>
+                    <button type="button" id="openSettingsButton" class="ghostButton">キー設定</button>
+                </div>
+                <div id="controlsList"></div>
+            </div>
         </div>
     </div>
     <div id="bottomControls">
-        <button id="startButton">ゲーム開始</button>
+        <button type="button" id="startButton" class="primaryButton">ゲーム開始</button>
+    </div>
+
+    <div id="settingsOverlay" hidden>
+        <div id="settingsPanel">
+            <div class="settingsHeader">
+                <h3>キー設定</h3>
+                <button type="button" id="closeSettingsButton" class="ghostButton">閉じる</button>
+            </div>
+            <p class="settingsHint">キー表示をクリックして、割り当てたいキーを押してください（Esc でキャンセル）。設定はこのブラウザに保存されます。</p>
+            <div id="settingsMessage"></div>
+            <div id="settingsList"></div>
+            <div class="settingsFooter">
+                <button type="button" id="resetBindingsButton" class="ghostButton">初期設定に戻す</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -53,14 +307,10 @@
             return params.get(name);
         }
 
-        // キー割り当て設定です。
+        // キー割り当ての初期設定です。
         // `key` は KeyboardEvent.key の値、`label` は画面表示用の文字列です。
-        // 好きなキーに変えたい場合は、下の `key` と `label` をセットで書き換えてください。
-        // 例:
-        // { key: 'a', label: 'A' }
-        // { key: ' ', label: 'Space' }
-        // { key: 'Shift', label: 'Shift' }
-        const KEY_BINDINGS = {
+        // 画面右側の「キー設定」からブラウザ上で変更でき、変更内容は localStorage に保存されます。
+        const DEFAULT_KEY_BINDINGS = {
             start: [{ key: 'Enter', label: 'Enter' }],
             moveLeft: [{ key: 'ArrowLeft', label: '←' }],
             moveRight: [{ key: 'ArrowRight', label: '→' }],
@@ -70,6 +320,132 @@
             pause: [{ key: 's', label: 'S' }],
             changeSize: [{ key: 'F3', label: 'F3' }]
         };
+
+        const BINDINGS_STORAGE_KEY = 'tetris.keyBindings.v1';
+
+        function cloneBindings(bindings) {
+            return JSON.parse(JSON.stringify(bindings));
+        }
+
+        function loadKeyBindings() {
+            try {
+                const raw = localStorage.getItem(BINDINGS_STORAGE_KEY);
+                if (!raw) return cloneBindings(DEFAULT_KEY_BINDINGS);
+                const saved = JSON.parse(raw);
+                const bindings = cloneBindings(DEFAULT_KEY_BINDINGS);
+                for (const action of Object.keys(bindings)) {
+                    if (Array.isArray(saved[action]) && saved[action].length > 0 &&
+                        saved[action].every(b => b && typeof b.key === 'string' && typeof b.label === 'string')) {
+                        bindings[action] = saved[action].map(b => ({ key: b.key, label: b.label }));
+                    }
+                }
+                return bindings;
+            } catch (e) {
+                return cloneBindings(DEFAULT_KEY_BINDINGS);
+            }
+        }
+
+        function saveKeyBindings() {
+            try {
+                localStorage.setItem(BINDINGS_STORAGE_KEY, JSON.stringify(KEY_BINDINGS));
+            } catch (e) {
+                // 保存できない環境では、その場限りの設定として続行する
+            }
+        }
+
+        let KEY_BINDINGS = loadKeyBindings();
+
+        // ====== ハイスコア（上位10件・名前つき） ======
+        const HIGH_SCORE_STORAGE_KEY = 'tetris.highScores.v1';
+        const PLAYER_NAME_STORAGE_KEY = 'tetris.playerName.v1';
+        const MAX_HIGH_SCORES = 10;
+
+        function loadHighScores() {
+            try {
+                const raw = localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter(entry => entry &&
+                    typeof entry.name === 'string' &&
+                    typeof entry.score === 'number' &&
+                    typeof entry.lines === 'number' &&
+                    typeof entry.level === 'number');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveHighScores(list) {
+            try {
+                localStorage.setItem(HIGH_SCORE_STORAGE_KEY, JSON.stringify(list));
+            } catch (e) {
+                // 保存できない環境では、その場限りの記録として続行する
+            }
+        }
+
+        // 新しい記録を追加し、スコア降順で上位10件だけを残して保存する
+        function addHighScore(name, scoreValue, linesValue, levelValue) {
+            const list = loadHighScores();
+            const entry = { id: `${Date.now()}-${Math.random()}`, name, score: scoreValue, lines: linesValue, level: levelValue };
+            list.push(entry);
+            list.sort((a, b) => b.score - a.score);
+            const trimmed = list.slice(0, MAX_HIGH_SCORES);
+            saveHighScores(trimmed);
+            return { list: trimmed, entryId: entry.id };
+        }
+
+        function loadPlayerName() {
+            try {
+                return localStorage.getItem(PLAYER_NAME_STORAGE_KEY) || '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function savePlayerName(name) {
+            try {
+                localStorage.setItem(PLAYER_NAME_STORAGE_KEY, name);
+            } catch (e) {
+                // 保存できない環境では、その場限りとして続行する
+            }
+        }
+
+        function renderHighScores(highlightId = null) {
+            highScoreListElement.innerHTML = '';
+            const list = loadHighScores();
+            if (list.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'highScoreEmpty';
+                empty.textContent = 'まだ記録がありません';
+                highScoreListElement.appendChild(empty);
+                return;
+            }
+            list.forEach((entry, index) => {
+                const row = document.createElement('div');
+                row.className = 'highScoreRow';
+                if (entry.id === highlightId) row.classList.add('highlight');
+
+                const rank = document.createElement('span');
+                rank.className = 'hsRank';
+                rank.textContent = String(index + 1).padStart(2, '0');
+
+                const name = document.createElement('span');
+                name.className = 'hsName';
+                name.textContent = entry.name;
+
+                const scoreValue = document.createElement('span');
+                scoreValue.className = 'hsScore';
+                scoreValue.textContent = entry.score;
+
+                const meta = document.createElement('span');
+                meta.className = 'hsMeta';
+                meta.textContent = `LV${entry.level} ・ ${entry.lines}ライン`;
+
+                row.append(rank, name, scoreValue, meta);
+                highScoreListElement.appendChild(row);
+            });
+        }
 
         const CONTROL_ITEMS = [
             { action: 'start', description: 'ゲーム開始' },
@@ -93,6 +469,13 @@
         const nextPieceCtx = nextPieceCanvas.getContext('2d');
         const pauseOverlay = document.getElementById('pauseOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const finalScoreElement = document.getElementById('finalScore');
+        const restartKeyLabelElement = document.getElementById('restartKeyLabel');
+        const levelUpToast = document.getElementById('levelUpToast');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const saveScoreButton = document.getElementById('saveScoreButton');
+        const scoreEntryMessageElement = document.getElementById('scoreEntryMessage');
+        const highScoreListElement = document.getElementById('highScoreList');
 
         // 音声ファイル
         const startSound = new Audio('./sound/start.mp3');
@@ -337,6 +720,8 @@
 //                      I      O         T      L        J       S       Z
         const COLORS = ['red', 'yellow', 'cyan', 'orange', 'blue', 'lime', 'fuchsia'];
 
+        const BOARD_BACKGROUND = '#0a0c0f';
+
         let board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
         let currentPiece = null;
         let nextPiece = null;
@@ -365,6 +750,7 @@
         let softDropKeyPressed = false; // ↓キー押下状態
         let rotatedUpwards = false; // 回転で上に移動したかのフラグ
         let floorKickCount = 0; // 同一ピースで使った接地後の上方向キック回数
+        let clearFlashRafId = null; // ライン消去フラッシュ描画のrequestAnimationFrame管理用
 
         resizeCanvas();
 
@@ -390,31 +776,73 @@
             }
         }
 
-        function drawBoard() {
-            ctx.fillStyle = '#fff';
+        // ブロック1つを、元の色のままハイライト・シャドウ付きで描画する
+        function drawBlock(context, px, py, color) {
+            const size = BLOCK_SIZE;
+            const bevel = Math.max(2, Math.floor(size * 0.15));
+            context.fillStyle = color;
+            context.fillRect(px, py, size, size);
+            context.fillStyle = 'rgba(255, 255, 255, 0.32)';
+            context.fillRect(px, py, size, bevel);
+            context.fillRect(px, py, bevel, size);
+            context.fillStyle = 'rgba(0, 0, 0, 0.32)';
+            context.fillRect(px, py + size - bevel, size, bevel);
+            context.fillRect(px + size - bevel, py, bevel, size);
+            context.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+            context.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
+        }
+
+        // ライン消去中のブロック（明滅フラッシュ）
+        function drawFlashBlock(context, px, py, elapsed) {
+            const size = BLOCK_SIZE;
+            const alpha = 0.65 + 0.35 * Math.abs(Math.sin(elapsed / 80));
+            context.fillStyle = `rgba(255, 243, 210, ${alpha.toFixed(3)})`;
+            context.fillRect(px, py, size, size);
+            context.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            context.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
+        }
+
+        // 盤面を背景・グリッド込みで描画する（セル値 '#888' はライン消去フラッシュ扱い）
+        function paintBoard(cells, flashElapsed = 0) {
+            ctx.fillStyle = BOARD_BACKGROUND;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 1; x < COLS; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * BLOCK_SIZE + 0.5, 0);
+                ctx.lineTo(x * BLOCK_SIZE + 0.5, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 1; y < ROWS; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * BLOCK_SIZE + 0.5);
+                ctx.lineTo(canvas.width, y * BLOCK_SIZE + 0.5);
+                ctx.stroke();
+            }
             for (let y = 0; y < ROWS; y++) {
                 for (let x = 0; x < COLS; x++) {
-                    if (board[y][x]) {
-                        ctx.fillStyle = board[y][x];
-                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                        ctx.strokeStyle = '#000';
-                        ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    if (!cells[y][x]) continue;
+                    if (cells[y][x] === '#888') {
+                        drawFlashBlock(ctx, x * BLOCK_SIZE, y * BLOCK_SIZE, flashElapsed);
+                    } else {
+                        drawBlock(ctx, x * BLOCK_SIZE, y * BLOCK_SIZE, cells[y][x]);
                     }
                 }
             }
         }
 
+        function drawBoard() {
+            paintBoard(board);
+        }
+
         function drawPiece(piece, x, y, color, context) {
-            context.fillStyle = color;
             for (let row = 0; row < piece.length; row++) {
                 for (let col = 0; col < piece[row].length; col++) {
                     if (piece[row][col]) {
                         // y+row < 0 なら描画しない（天井からはみ出した部分は非表示）
                         if ((y + row) < 0) continue;
-                        context.fillRect((x + col) * BLOCK_SIZE, (y + row) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                        context.strokeStyle = '#000';
-                        context.strokeRect((x + col) * BLOCK_SIZE, (y + row) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        drawBlock(context, (x + col) * BLOCK_SIZE, (y + row) * BLOCK_SIZE, color);
                     }
                 }
             }
@@ -423,6 +851,9 @@
         function drawNextPiece() {
             // 背景を透明にする
             nextPieceCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+            nextPieceCtx.font = `600 ${Math.max(10, Math.round(BLOCK_SIZE * 0.5))}px "Segoe UI", sans-serif`;
+            nextPieceCtx.fillStyle = 'rgba(236, 234, 228, 0.4)';
+            nextPieceCtx.fillText('N E X T', 1, Math.round(BLOCK_SIZE * 0.8));
             // 出現時のX位置を計算（gameCanvasと同じ計算）
             const spawnX = Math.floor(COLS / 2) - Math.floor(nextPiece[0].length / 2);
             // NextPieceキャンバス内での表示位置（gameCanvasの出現位置と揃えるための調整）
@@ -442,20 +873,25 @@
             return KEY_BINDINGS[action].some(binding => normalizeBindingKey(binding.key) === normalizedKey);
         }
 
-        function getBindingLabel(action) {
-            return KEY_BINDINGS[action].map(binding => binding.label).join(' / ');
-        }
-
         function renderControls() {
             controlsListElement.innerHTML = '';
             for (const item of CONTROL_ITEMS) {
-                const row = document.createElement('p');
-                const keyLabel = document.createElement('strong');
-                keyLabel.textContent = getBindingLabel(item.action);
-                row.appendChild(keyLabel);
-                row.append(` : ${item.description}`);
+                const row = document.createElement('div');
+                row.className = 'controlRow';
+                const keys = document.createElement('span');
+                keys.className = 'controlKeys';
+                for (const binding of KEY_BINDINGS[item.action]) {
+                    const keyLabel = document.createElement('kbd');
+                    keyLabel.textContent = binding.label;
+                    keys.appendChild(keyLabel);
+                }
+                const desc = document.createElement('span');
+                desc.className = 'controlDesc';
+                desc.textContent = item.description;
+                row.append(keys, desc);
                 controlsListElement.appendChild(row);
             }
+            restartKeyLabelElement.textContent = KEY_BINDINGS.start.map(binding => binding.label).join(' / ');
         }
 
         function getPieceIndex(piece) {
@@ -709,6 +1145,8 @@
                 // レベルアップ音を再生
                 levelupSound.currentTime = 0;
                 levelupSound.play().catch(e => console.log('音声再生エラー:', e));
+                showLevelUpToast();
+                bumpStat(levelElement);
             }
             level = newLevel;
             levelElement.textContent = level;
@@ -749,35 +1187,27 @@
 
             // 4. ０ミリ秒後にグレー表示 → その後１秒後に消去
             setTimeout(() => {
-                // 4-1. グレー描画
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                for (let y = 0; y < ROWS; y++) {
-                    for (let x = 0; x < COLS; x++) {
-                        if (tempBoard[y][x]) {
-                            ctx.fillStyle = tempBoard[y][x];
-                            ctx.fillRect(
-                                x * BLOCK_SIZE,
-                                y * BLOCK_SIZE,
-                                BLOCK_SIZE,
-                                BLOCK_SIZE
-                            );
-                            ctx.strokeStyle = '#000';
-                            ctx.strokeRect(
-                                x * BLOCK_SIZE,
-                                y * BLOCK_SIZE,
-                                BLOCK_SIZE,
-                                BLOCK_SIZE
-                            );
-                        }
+                // 4-1. 消去ラインをフラッシュ表示（消去タイミング自体は従来と同じ）
+                const flashStart = performance.now();
+                paintBoard(tempBoard, 0);
+                clearFlashRafId = requestAnimationFrame(function pulse(now) {
+                    if (!isClearingLines) {
+                        clearFlashRafId = null;
+                        return;
                     }
-                }
+                    paintBoard(tempBoard, now - flashStart);
+                    clearFlashRafId = requestAnimationFrame(pulse);
+                });
                 // ライン消去音を再生
                 clearingLinesSound.currentTime = 0;
                 clearingLinesSound.play().catch(e => console.log('音声再生エラー:', e));
 
                 // 4-2. １秒後に本当の消去
                 setTimeout(() => {
+                    if (clearFlashRafId) {
+                        cancelAnimationFrame(clearFlashRafId);
+                        clearFlashRafId = null;
+                    }
                     // 新しい盤面構築
                     let newBoard = [];
                     for (let y = ROWS - 1; y >= 0; y--) {
@@ -804,8 +1234,10 @@
                     }
 
                     scoreElement.textContent = score;
+                    bumpStat(scoreElement);
                     lines += cleared;
                     linesElement.textContent = lines;
+                    bumpStat(linesElement);
                     updateLevel();
 
                     // 新ピース→描画→ループ再開
@@ -867,12 +1299,23 @@
                 gameLoop = null;
             }
             clearLockTimeout();
+            finalScoreElement.textContent = score;
             gameOverOverlay.style.display = 'flex';
             startButton.disabled = false;
             pauseOverlay.style.display = 'none';
 
             gameOverSound.currentTime = 0;
             gameOverSound.play().catch(e => console.log('音声再生エラー:', e));
+
+            // ハイスコア登録UIを初期化して表示
+            scoreEntrySaved = false;
+            playerNameInput.value = loadPlayerName();
+            playerNameInput.disabled = false;
+            saveScoreButton.disabled = false;
+            saveScoreButton.textContent = '登録';
+            scoreEntryMessageElement.textContent = '';
+            renderHighScores();
+            playerNameInput.focus();
         }
 
         function startGame() {
@@ -970,6 +1413,8 @@
         }
 
         document.addEventListener('keydown', (e) => {
+            if (isSettingsOpen) return;
+            if (e.target === playerNameInput) return;
             const isStartKey = isBoundAction('start', e.key);
             const isChangeSizeKey = isBoundAction('changeSize', e.key);
             const isPauseKey = isBoundAction('pause', e.key);
@@ -1055,8 +1500,252 @@
             }
         });
 
+        // ====== 画面演出 ======
+        function bumpStat(element) {
+            element.classList.remove('bump');
+            void element.offsetWidth;
+            element.classList.add('bump');
+        }
+
+        function showLevelUpToast() {
+            levelUpToast.classList.remove('show');
+            void levelUpToast.offsetWidth;
+            levelUpToast.classList.add('show');
+        }
+
+        // ====== キー設定UI ======
+        const openSettingsButton = document.getElementById('openSettingsButton');
+        const settingsOverlay = document.getElementById('settingsOverlay');
+        const settingsListElement = document.getElementById('settingsList');
+        const settingsMessageElement = document.getElementById('settingsMessage');
+        const closeSettingsButton = document.getElementById('closeSettingsButton');
+        const resetBindingsButton = document.getElementById('resetBindingsButton');
+
+        const MAX_BINDINGS_PER_ACTION = 3;
+        const KEY_LABELS = { ' ': 'Space', ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Control: 'Ctrl' };
+
+        let isSettingsOpen = false;
+        let listeningTarget = null; // { action, index }。index が配列長と同じときは新規追加
+        let settingsMessageTimeoutId = null;
+
+        function labelForKey(key) {
+            if (KEY_LABELS[key]) return KEY_LABELS[key];
+            return key.length === 1 ? key.toUpperCase() : key;
+        }
+
+        function getActionDescription(action) {
+            const item = CONTROL_ITEMS.find(item => item.action === action);
+            return item ? item.description : action;
+        }
+
+        function setSettingsMessage(text) {
+            if (settingsMessageTimeoutId) {
+                clearTimeout(settingsMessageTimeoutId);
+                settingsMessageTimeoutId = null;
+            }
+            settingsMessageElement.textContent = text;
+            if (text) {
+                settingsMessageTimeoutId = setTimeout(() => {
+                    settingsMessageElement.textContent = '';
+                    settingsMessageTimeoutId = null;
+                }, 3000);
+            }
+        }
+
+        function findConflictAction(normalizedKey) {
+            for (const action of Object.keys(KEY_BINDINGS)) {
+                for (let i = 0; i < KEY_BINDINGS[action].length; i++) {
+                    if (action === listeningTarget.action && i === listeningTarget.index) continue;
+                    if (normalizeBindingKey(KEY_BINDINGS[action][i].key) === normalizedKey) return action;
+                }
+            }
+            return null;
+        }
+
+        function beginListening(action, index) {
+            listeningTarget = { action, index };
+            renderSettingsList();
+        }
+
+        function cancelListening() {
+            listeningTarget = null;
+            renderSettingsList();
+        }
+
+        function applyBindingsChange() {
+            saveKeyBindings();
+            renderSettingsList();
+            renderControls();
+        }
+
+        function renderSettingsList() {
+            settingsListElement.innerHTML = '';
+            for (const item of CONTROL_ITEMS) {
+                const bindings = KEY_BINDINGS[item.action];
+                const isListeningAt = index => listeningTarget &&
+                    listeningTarget.action === item.action && listeningTarget.index === index;
+
+                const row = document.createElement('div');
+                row.className = 'settingsRow';
+                const desc = document.createElement('span');
+                desc.className = 'settingsDesc';
+                desc.textContent = item.description;
+                const chips = document.createElement('div');
+                chips.className = 'settingsChips';
+
+                bindings.forEach((binding, index) => {
+                    const group = document.createElement('span');
+                    group.className = 'chipGroup';
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'keyChip';
+                    if (isListeningAt(index)) {
+                        chip.classList.add('listening');
+                        chip.textContent = '入力待ち…';
+                        chip.addEventListener('click', cancelListening);
+                    } else {
+                        chip.textContent = binding.label;
+                        chip.addEventListener('click', () => beginListening(item.action, index));
+                    }
+                    group.appendChild(chip);
+                    if (bindings.length > 1) {
+                        const remove = document.createElement('button');
+                        remove.type = 'button';
+                        remove.className = 'chipRemove';
+                        remove.textContent = '×';
+                        remove.title = 'このキーを削除';
+                        remove.addEventListener('click', () => {
+                            bindings.splice(index, 1);
+                            listeningTarget = null;
+                            applyBindingsChange();
+                        });
+                        group.appendChild(remove);
+                    }
+                    chips.appendChild(group);
+                });
+
+                if (isListeningAt(bindings.length)) {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'keyChip listening';
+                    chip.textContent = '入力待ち…';
+                    chip.addEventListener('click', cancelListening);
+                    chips.appendChild(chip);
+                } else if (bindings.length < MAX_BINDINGS_PER_ACTION) {
+                    const add = document.createElement('button');
+                    add.type = 'button';
+                    add.className = 'chipAdd';
+                    add.textContent = '＋';
+                    add.title = 'キーを追加';
+                    add.addEventListener('click', () => beginListening(item.action, bindings.length));
+                    chips.appendChild(add);
+                }
+
+                row.append(desc, chips);
+                settingsListElement.appendChild(row);
+            }
+        }
+
+        function openSettings() {
+            if (isGameRunning && !isPaused) {
+                togglePause();
+            }
+            isSettingsOpen = true;
+            settingsOverlay.hidden = false;
+            setSettingsMessage('');
+            renderSettingsList();
+        }
+
+        function closeSettings() {
+            listeningTarget = null;
+            isSettingsOpen = false;
+            settingsOverlay.hidden = true;
+        }
+
+        // キー設定中のキー入力はキャプチャ段階で処理し、ゲーム操作には渡さない
+        document.addEventListener('keydown', (e) => {
+            if (!isSettingsOpen) return;
+            if (!listeningTarget) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeSettings();
+                }
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.key === 'Escape') {
+                cancelListening();
+                return;
+            }
+            const normalizedKey = normalizeBindingKey(e.key);
+            if (!normalizedKey) return;
+            const conflictAction = findConflictAction(normalizedKey);
+            if (conflictAction) {
+                setSettingsMessage(`「${labelForKey(e.key)}」は「${getActionDescription(conflictAction)}」に割り当て済みです`);
+                return;
+            }
+            const binding = { key: normalizedKey, label: labelForKey(e.key) };
+            const bindings = KEY_BINDINGS[listeningTarget.action];
+            if (listeningTarget.index >= bindings.length) {
+                bindings.push(binding);
+            } else {
+                bindings[listeningTarget.index] = binding;
+            }
+            listeningTarget = null;
+            setSettingsMessage('');
+            applyBindingsChange();
+        }, true);
+
+        openSettingsButton.addEventListener('click', () => {
+            openSettings();
+            openSettingsButton.blur();
+        });
+        closeSettingsButton.addEventListener('click', closeSettings);
+        resetBindingsButton.addEventListener('click', () => {
+            KEY_BINDINGS = cloneBindings(DEFAULT_KEY_BINDINGS);
+            try {
+                localStorage.removeItem(BINDINGS_STORAGE_KEY);
+            } catch (e) {
+                // 保存領域が使えない環境では何もしない
+            }
+            listeningTarget = null;
+            renderSettingsList();
+            renderControls();
+            setSettingsMessage('初期設定に戻しました');
+        });
+        settingsOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsOverlay) closeSettings();
+        });
+
+        // ====== ハイスコア登録 ======
+        let scoreEntrySaved = false;
+
+        function submitScoreEntry() {
+            if (scoreEntrySaved) return;
+            const rawName = playerNameInput.value.trim();
+            const name = (rawName || 'NONAME').slice(0, 12);
+            if (rawName) savePlayerName(name);
+            const { list, entryId } = addHighScore(name, score, lines, level);
+            scoreEntrySaved = true;
+            playerNameInput.disabled = true;
+            saveScoreButton.disabled = true;
+            saveScoreButton.textContent = '登録済み';
+            const madeTop10 = list.some(entry => entry.id === entryId);
+            scoreEntryMessageElement.textContent = madeTop10 ? '記録しました' : 'TOP10圏外でした';
+            renderHighScores(entryId);
+        }
+
+        saveScoreButton.addEventListener('click', submitScoreEntry);
+        playerNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitScoreEntry();
+            }
+        });
+
         startButton.addEventListener('click', startGame);
-        
+
         // 初期化
         resizeCanvas();
         renderControls();

@@ -1,4 +1,5 @@
 .vscode/
+.claude/
 *.code-workspace
 *.csv
 *.log

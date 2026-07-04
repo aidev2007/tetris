@@ -721,6 +721,8 @@
         const COLORS = ['red', 'yellow', 'cyan', 'orange', 'blue', 'lime', 'fuchsia'];
 
         const BOARD_BACKGROUND = '#0a0c0f';
+        const WALL_THICKNESS = 1; // 壁の厚み（マス単位、左右と下のみ）
+        const WALL_COLOR = '#9aa2ab'; // SEGAアーケード版を意識した明るめグレー
 
         let board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
         let currentPiece = null;
@@ -759,15 +761,17 @@
             const newBlockSize = Math.floor(20 * multiplier);
 
             BLOCK_SIZE = newBlockSize;
-            
-            canvas.width = COLS * BLOCK_SIZE;
-            canvas.height = ROWS * BLOCK_SIZE;
-            
-            // NextPieceキャンバスも調整（gameCanvasと同じ幅）
+
+            // 左右と下に壁ブロック分の余白を確保（プレイフィールド自体のマス目は不変更）
+            canvas.width = (COLS + WALL_THICKNESS * 2) * BLOCK_SIZE;
+            canvas.height = (ROWS + WALL_THICKNESS) * BLOCK_SIZE;
+
+            // NextPieceキャンバスも調整（プレイフィールドと同じ幅）
             nextPieceCanvas.width = COLS * BLOCK_SIZE;
             nextPieceCanvas.height = 5 * BLOCK_SIZE;
-            
-            // NextPieceCanvasの位置を画面サイズに合わせて調整
+
+            // NextPieceCanvasの位置を画面サイズに合わせて調整（左壁の分だけ右にずらす）
+            nextPieceCanvas.style.left = `${WALL_THICKNESS * BLOCK_SIZE}px`;
             nextPieceCanvas.style.top = `-${6 * BLOCK_SIZE}px`;
             
             draw();
@@ -802,31 +806,54 @@
             context.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
         }
 
+        // プレイフィールドの左右・下を囲む壁ブロックを描画する
+        function drawWalls() {
+            const offsetX = WALL_THICKNESS * BLOCK_SIZE;
+            for (let y = 0; y < ROWS + WALL_THICKNESS; y++) {
+                for (let t = 0; t < WALL_THICKNESS; t++) {
+                    drawBlock(ctx, t * BLOCK_SIZE, y * BLOCK_SIZE, WALL_COLOR); // 左壁
+                    drawBlock(ctx, offsetX + COLS * BLOCK_SIZE + t * BLOCK_SIZE, y * BLOCK_SIZE, WALL_COLOR); // 右壁
+                }
+            }
+            for (let x = 0; x < COLS; x++) {
+                for (let t = 0; t < WALL_THICKNESS; t++) {
+                    drawBlock(ctx, offsetX + x * BLOCK_SIZE, (ROWS + t) * BLOCK_SIZE, WALL_COLOR); // 下壁
+                }
+            }
+        }
+
         // 盤面を背景・グリッド込みで描画する（セル値 '#888' はライン消去フラッシュ扱い）
         function paintBoard(cells, flashElapsed = 0) {
+            const offsetX = WALL_THICKNESS * BLOCK_SIZE;
+            const fieldWidth = COLS * BLOCK_SIZE;
+            const fieldHeight = ROWS * BLOCK_SIZE;
+
             ctx.fillStyle = BOARD_BACKGROUND;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawWalls();
+
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
             ctx.lineWidth = 1;
             for (let x = 1; x < COLS; x++) {
                 ctx.beginPath();
-                ctx.moveTo(x * BLOCK_SIZE + 0.5, 0);
-                ctx.lineTo(x * BLOCK_SIZE + 0.5, canvas.height);
+                ctx.moveTo(offsetX + x * BLOCK_SIZE + 0.5, 0);
+                ctx.lineTo(offsetX + x * BLOCK_SIZE + 0.5, fieldHeight);
                 ctx.stroke();
             }
             for (let y = 1; y < ROWS; y++) {
                 ctx.beginPath();
-                ctx.moveTo(0, y * BLOCK_SIZE + 0.5);
-                ctx.lineTo(canvas.width, y * BLOCK_SIZE + 0.5);
+                ctx.moveTo(offsetX, y * BLOCK_SIZE + 0.5);
+                ctx.lineTo(offsetX + fieldWidth, y * BLOCK_SIZE + 0.5);
                 ctx.stroke();
             }
             for (let y = 0; y < ROWS; y++) {
                 for (let x = 0; x < COLS; x++) {
                     if (!cells[y][x]) continue;
                     if (cells[y][x] === '#888') {
-                        drawFlashBlock(ctx, x * BLOCK_SIZE, y * BLOCK_SIZE, flashElapsed);
+                        drawFlashBlock(ctx, offsetX + x * BLOCK_SIZE, y * BLOCK_SIZE, flashElapsed);
                     } else {
-                        drawBlock(ctx, x * BLOCK_SIZE, y * BLOCK_SIZE, cells[y][x]);
+                        drawBlock(ctx, offsetX + x * BLOCK_SIZE, y * BLOCK_SIZE, cells[y][x]);
                     }
                 }
             }
@@ -836,13 +863,13 @@
             paintBoard(board);
         }
 
-        function drawPiece(piece, x, y, color, context) {
+        function drawPiece(piece, x, y, color, context, offsetXPixels = 0) {
             for (let row = 0; row < piece.length; row++) {
                 for (let col = 0; col < piece[row].length; col++) {
                     if (piece[row][col]) {
                         // y+row < 0 なら描画しない（天井からはみ出した部分は非表示）
                         if ((y + row) < 0) continue;
-                        drawBlock(context, (x + col) * BLOCK_SIZE, (y + row) * BLOCK_SIZE, color);
+                        drawBlock(context, (x + col) * BLOCK_SIZE + offsetXPixels, (y + row) * BLOCK_SIZE, color);
                     }
                 }
             }
@@ -1286,7 +1313,7 @@
         function draw() {
             drawBoard();
             if (currentPiece) {
-                drawPiece(currentPiece, currentX, currentY, currentColor, ctx);
+                drawPiece(currentPiece, currentX, currentY, currentColor, ctx, WALL_THICKNESS * BLOCK_SIZE);
             }
         }
 
